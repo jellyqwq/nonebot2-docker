@@ -1,0 +1,78 @@
+services:
+  # Initialize the project interactively:
+  # BOT_PROJECT=mortis-bot docker compose --profile init run --rm init
+  # When nb create asks for "Project Name", enter the same value as BOT_PROJECT.
+  #
+  # Start the bot after initialization:
+  # BOT_PROJECT=mortis-bot docker compose up -d nonebot2
+  #
+  # Follow logs:
+  # BOT_PROJECT=mortis-bot docker compose logs -f nonebot2
+  init:
+    image: nonebot2-docker:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    profiles:
+      - init
+    working_dir: /workspace
+    volumes:
+      - ./${BOT_PROJECT:-mortis-bot}:/workspace/${BOT_PROJECT:-mortis-bot}
+    stdin_open: true
+    tty: true
+    environment:
+      BOT_PROJECT: ${BOT_PROJECT:-mortis-bot}
+    networks:
+      - bot-net
+    command:
+      - sh
+      - -lc
+      - |
+        echo "Use project name: $${BOT_PROJECT}"
+        nb create --output-dir /workspace
+
+  nonebot2:
+    image: nonebot2-docker:latest
+    pull_policy: never
+    container_name: nonebot2
+    volumes:
+      - ./${BOT_PROJECT:-mortis-bot}:/workspace
+    working_dir: /workspace
+    environment:
+      BOT_PROJECT: ${BOT_PROJECT:-mortis-bot}
+      # 优先级高于mortis-env/.env里的设置
+      # HOST: ${NONEBOT2_HOST:-0.0.0.0}
+      # PORT: ${NONEBOT2_PORT:-8080}
+      TZ: Asia/Shanghai
+    networks:
+      - bot-net
+    restart: unless-stopped
+    command:
+      - sh
+      - -lc
+      - |
+        if [ ! -f pyproject.toml ]; then
+          echo "NoneBot project not found in /workspace."
+          echo "Run: BOT_PROJECT=$${BOT_PROJECT} docker compose --profile init run --rm init"
+          exit 1
+        fi
+        nb run
+
+  napcat:
+    image: mlikiowa/napcat-docker:latest
+    container_name: napcat
+    volumes:
+      - ./napcat/config:/app/napcat/config
+      - ./napcat/QQ:/app/.config/QQ
+    environment:
+      - NAPCAT_UID=${NAPCAT_UID:-501}
+      - NAPCAT_GID=${NAPCAT_GID:-20}
+    ports:
+      - 6099:6099
+    networks:
+      - bot-net
+    restart: always
+
+networks:
+  bot-net:
+    driver: bridge
