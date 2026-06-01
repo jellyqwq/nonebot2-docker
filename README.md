@@ -58,25 +58,27 @@ docker compose up -d
 # 查看日志
 docker compose logs -f nonebot2
 
-# 重启
+# 重启 加入插件后也要重启
 docker compose restart nonebot2
 ```
 
 ## 服务说明
 
-| 服务 | 用途 | 启动命令 |
-|------|------|----------|
-| `init` | 交互式创建 NoneBot 项目脚手架（一次性） | `docker compose --profile init run --rm init` |
-| `nonebot2` | 运行 NoneBot 机器人 | `docker compose up -d nonebot2` |
-| `napcat` | QQ 协议适配器 | `docker compose up -d napcat` |
+
+| 服务       | 用途                                    | 启动命令                                      |
+| ---------- | --------------------------------------- | --------------------------------------------- |
+| `init`     | 交互式创建 NoneBot 项目脚手架（一次性） | `docker compose --profile init run --rm init` |
+| `nonebot2` | 运行 NoneBot 机器人                     | `docker compose up -d nonebot2`               |
+| `napcat`   | QQ 协议适配器                           | `docker compose up -d napcat`                 |
 
 ## 端口
 
-| 端口 | 服务 | 用途 |
-|------|------|------|
+
+| 端口 | 服务     | 用途                   |
+| ---- | -------- | ---------------------- |
 | 8080 | nonebot2 | NoneBot HTTP/WebSocket |
-| 5680 | nonebot2 | NoneBot 额外端口 |
-| 6099 | napcat | Web 管理面板 |
+| 5680 | nonebot2 | NoneBot 额外端口       |
+| 6099 | napcat   | Web 管理面板           |
 
 容器间通过 `bot-net` 网络互通，NoneBot 用 `ws://napcat:3000` 连接 NapCat。
 

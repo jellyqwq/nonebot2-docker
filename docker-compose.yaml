@@ -46,6 +46,8 @@ services:
       TZ: Asia/Shanghai
     networks:
       - bot-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     command:
       - sh
@@ -71,6 +73,8 @@ services:
       - 6099:6099
     networks:
       - bot-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
 
 networks:
