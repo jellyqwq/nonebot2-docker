@@ -1,0 +1,28 @@
+FROM python:3.13-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    TZ=Asia/Shanghai \
+    HOME=/home/nanobot
+
+WORKDIR /app
+
+RUN rm -f /etc/apt/sources.list.d/debian.sources && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg fonts-noto-cjk fontconfig && \
+    mkdir -p /var/cache/fontconfig /root/.cache/fontconfig && \
+    fc-cache -f && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple \
+        nanobot-ai==0.2.1 nanobot-channel-anon==0.1.11
+
+RUN useradd -m -u 1000 -s /bin/bash nanobot && \
+    mkdir -p /home/nanobot/.nanobot && \
+    chown -R nanobot:nanobot /home/nanobot
+
+USER nanobot
+
+CMD ["nanobot", "gateway", "--config", "/home/nanobot/.nanobot/config.json"]

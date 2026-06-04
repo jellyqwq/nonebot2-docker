@@ -10,6 +10,9 @@
 # NapCat data (generated at runtime)
 napcat/
 
+# nanobot real config (keep config.example.json)
+nanobot
+
 # mortis-bot
 mortis-bot
 

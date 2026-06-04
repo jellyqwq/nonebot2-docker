@@ -6,10 +6,12 @@
 
 ```
 ├── Dockerfile           # 镜像：python:3.13-slim + nb-cli
-├── docker-compose.yaml  # 三个服务：init / nonebot2 / napcat
+├── Dockerfile.nanobot   # 镜像：python:3.13-slim + nanobot + channel-anon
+├── docker-compose.yaml  # 服务：init / nonebot2 / napcat / nanobot
 ├── mortis-bot/          # NoneBot 项目代码（由 init 生成）
 ├── napcat/config/       # NapCat 配置持久化
 ├── napcat/QQ/           # QQ 登录态持久化
+├── nanobot/config/      # nanobot 配置 + workspace 持久化
 └── .env                 # 环境变量（可选）
 ```
 
@@ -70,6 +72,7 @@ docker compose restart nonebot2
 | `init`     | 交互式创建 NoneBot 项目脚手架（一次性） | `docker compose --profile init run --rm init` |
 | `nonebot2` | 运行 NoneBot 机器人                     | `docker compose up -d nonebot2`               |
 | `napcat`   | QQ 协议适配器                           | `docker compose up -d napcat`                 |
+| `nanobot`  | AI agent，经 channel-anon 接入 NapCat   | `docker compose up -d nanobot`                |
 
 ## 端口
 
@@ -79,8 +82,54 @@ docker compose restart nonebot2
 | 8080 | nonebot2 | NoneBot HTTP/WebSocket |
 | 5680 | nonebot2 | NoneBot 额外端口       |
 | 6099 | napcat   | Web 管理面板           |
+| 3001 | napcat   | OneBot v11 WS 服务端（供 nanobot 连入） |
+| 8765 | nanobot  | WebUI（仅绑定 127.0.0.1） |
 
 容器间通过 `bot-net` 网络互通，NoneBot 用 `ws://napcat:3000` 连接 NapCat。
+
+## nanobot 部署
+
+[nanobot](https://github.com/HKUDS/nanobot) 是轻量 AI agent runtime，通过
+[nanobot-channel-anon](https://github.com/ByteColtX/nanobot-channel-anon) 插件接入同一个 NapCat，
+实现 QQ 群内的 AI 对话与群管理。
+
+> 连接方向与 nonebot2 相反：NapCat 以 WS *客户端*反向连 nonebot2，而 nanobot 作为 WS *客户端*
+> 主动连 NapCat 的 WS *服务端*（`ws://napcat:3001`）。两者互不冲突。
+
+### 1. 准备配置
+
+```bash
+cp nanobot/config/config.example.json nanobot/config/config.json
+```
+
+编辑 `nanobot/config/config.json`：
+
+- `providers`：填入 LLM provider 的 `apiKey`（示例用 openrouter，可换成任意兼容 provider）
+- `agents.defaults`：默认 provider 与 model
+- `channels.websocket.token`：WebUI 访问 token（0.0.0.0 绑定时必填）
+- `channels.anon.accessToken`：需与 NapCat WS 服务端的 token 一致（默认 `ciallo0721anon`）
+- `channels.anon.allowFrom`：允许的 QQ / 群号；`[]` 表示**拒绝所有**，`["*"]` 表示全部放行
+
+NapCat 侧已在 `onebot11_*.json` 的 `websocketServers` 开启 `3001` 端口，token 为 `ciallo0721anon`。
+修改 token 时两边需保持一致，并重启 napcat 生效。
+
+### 2. 构建与运行
+
+```bash
+# 构建镜像
+docker compose build nanobot
+
+# 确认插件已装好（应看到 Anon / channel: anon）
+docker compose run --rm nanobot nanobot plugins list
+
+# 启动
+docker compose up -d nanobot
+
+# 查看日志（确认 gateway 启动、anon channel 连上 NapCat）
+docker compose logs -f nanobot
+```
+
+WebUI 在 `http://127.0.0.1:8765`，用 config 里的 token 进入。
 
 ## 参考
 
